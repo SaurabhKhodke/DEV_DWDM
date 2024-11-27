@@ -1,0 +1,70 @@
+import pandas as pd
+import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the GPS trajectory data (make sure you have the .csv file available)
+df = pd.read_csv('Python\\gpstrajectory.csv')
+
+# Extract the relevant features (Latitude and Longitude)
+X = df[['Latitude', 'Longitude']]
+
+# Optional: Calculate the Elbow Method to determine the optimal number of clusters
+inertia = []
+K = range(1, 10)
+for k in K:
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    kmeans.fit(X)
+    inertia.append(kmeans.inertia_)
+
+plt.figure(figsize=(8, 6))
+plt.plot(K, inertia, marker='o')
+plt.title('Elbow Method for Optimal K')
+plt.xlabel('Number of Clusters')
+plt.ylabel('Inertia')
+plt.show()
+
+# Choose the number of clusters (K) - we assume it's 3 based on Elbow method results
+kmeans = KMeans(n_clusters=3, random_state=42)
+
+# Fit the model and assign clusters to the data
+df['Cluster'] = kmeans.fit_predict(X)
+
+# Get the cluster centers (centroids)
+centroids = kmeans.cluster_centers_
+
+# Calculate Silhouette Score
+silhouette_avg = silhouette_score(X, df['Cluster'])
+print(f"Silhouette Score for {kmeans.n_clusters} clusters: {silhouette_avg}")
+
+# Calculate the distance of each point from its cluster's centroid
+df['Distance_from_Centroid'] = np.linalg.norm(X.values - centroids[df['Cluster']], axis=1)
+
+# Visualize the clusters and the centroids
+plt.figure(figsize=(8, 6))
+sns.scatterplot(data=df, x='Longitude', y='Latitude', hue='Cluster', palette='tab10', s=60)
+plt.scatter(centroids[:, 1], centroids[:, 0], c='black', marker='X', s=200, label='Centroids')
+plt.title('GPS Trajectory Clustering (K-Means)')
+plt.xlabel('Longitude')
+plt.ylabel('Latitude')
+plt.legend()
+plt.show()
+
+# Inspect the data points in each cluster, along with distance from centroid
+for cluster_num in range(3):
+    print(f"\nCluster {cluster_num} Points:")
+    print(df[df['Cluster'] == cluster_num][['Timestamp', 'Latitude', 'Longitude', 'Distance_from_Centroid']].head())  # Show first few points of each cluster
+
+# Allow user to input latitude and longitude, and predict the cluster for that point
+user_latitude = float(input("Enter the latitude of the point: "))
+user_longitude = float(input("Enter the longitude of the point: "))
+
+# Convert user point to a DataFrame with matching column names to avoid warnings
+user_point = pd.DataFrame([[user_latitude, user_longitude]], columns=['Latitude', 'Longitude'])
+
+# Predict the cluster for the user input point
+predicted_cluster = kmeans.predict(user_point)[0]
+
+print(f"The point with latitude {user_latitude} and longitude {user_longitude} belongs to Cluster {predicted_cluster}.")

@@ -1,0 +1,56 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.impute import SimpleImputer  # Importing SimpleImputer for handling NaN values
+
+# Load the dataset
+file_path = 'D:\\Code\\Python\\fifa_players.csv'
+data = pd.read_csv(file_path)
+
+# Set a threshold for "high potential" (Potential > 80 is classified as '1', otherwise '0')
+data['HighPotential'] = (data['potential'] > 80).astype(int)
+
+# Select relevant features (adjust this list based on what you consider important)
+features = [
+    'age', 'overall_rating', 'value_euro', 'wage_euro',
+    'international_reputation(1-5)', 'weak_foot(1-5)', 'skill_moves(1-5)', 
+    'acceleration', 'sprint_speed', 'agility', 'stamina', 'strength'
+]
+X = data[features]  # Feature columns
+y = data['HighPotential']  # Target variable
+
+# Handle missing values using SimpleImputer (fill NaN values with the mean of the column)
+imputer = SimpleImputer(strategy='mean')
+X = imputer.fit_transform(X)
+
+# Split the data into training and testing sets (80% train, 20% test)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize the Naive Bayes model
+model = GaussianNB()
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Make predictions on the test data
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Accuracy: {accuracy * 100:.2f}%')
+
+# Confusion matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+print("Confusion Matrix:")
+print(conf_matrix)
+
+# Classification report
+class_report = classification_report(y_test, y_pred)
+print("Classification Report:")
+print(class_report)
+
+# Probabilities for each prediction
+y_proba = model.predict_proba(X_test)
+print("Predicted Probabilities:")
+print(y_proba)
